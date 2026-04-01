@@ -1,0 +1,199 @@
+/* eslint-disable react-refresh/only-export-components */
+/* eslint-disable no-empty */
+import React, { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import type { Todo, TodoStatus } from "../../types/index";
+import KanbanCard from "./Kanban.card";
+import { Tooltip } from "../../ui/Tooltip.ui";
+import { Plus } from "lucide-react";
+
+const LS_KEY = "kanban_optimistic_moves";
+
+function saveOptimisticMove(todoId: number, status: TodoStatus) {
+  try {
+    const existing = JSON.parse(localStorage.getItem(LS_KEY) || "{}");
+    existing[todoId] = status;
+    localStorage.setItem(LS_KEY, JSON.stringify(existing));
+  } catch {}
+}
+
+function removeOptimisticMove(todoId: number) {
+  try {
+    const existing = JSON.parse(localStorage.getItem(LS_KEY) || "{}");
+    delete existing[todoId];
+    localStorage.setItem(LS_KEY, JSON.stringify(existing));
+  } catch {}
+}
+
+export { saveOptimisticMove, removeOptimisticMove };
+
+interface KanbanColumnProps {
+  id: TodoStatus;
+  title: string;
+  color: string;
+  headerBg: string;
+  dotColor: string;
+  todos: Todo[];
+  onDrop: (todoId: number, status: TodoStatus) => void;
+  onEdit: (todo: Todo) => void;
+  onDelete: (id: number) => void;
+  onAddNew: (status: TodoStatus) => void;
+  onViewDetail: (todo: Todo) => void;
+  draggingId: number | null;
+  syncingIds?: Set<number>;
+}
+
+export default function KanbanColumn({
+  id,
+  title,
+  color,
+  todos,
+  onDrop,
+  onEdit,
+  onDelete,
+  onAddNew,
+  onViewDetail,
+  draggingId,
+  syncingIds = new Set(),
+}: KanbanColumnProps) {
+  const [isOver, setIsOver] = useState(false);
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+    setIsOver(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    if (!e.currentTarget.contains(e.relatedTarget as Node)) setIsOver(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsOver(false);
+    const todoId = Number(e.dataTransfer.getData("todoId"));
+    if (!todoId) return;
+
+    saveOptimisticMove(todoId, id);
+
+    Promise.resolve(onDrop(todoId, id))
+      .then(() => {
+        removeOptimisticMove(todoId);
+      })
+      .catch(() => {
+        removeOptimisticMove(todoId);
+      });
+  };
+
+  return (
+    <div className="flex flex-col w-85 min-w-75 max-w-90 shrink-0 min-h-[84vh] max-h-[84vh]">
+      <div className="flex items-center justify-between px-3 py-2.5 mb-3 rounded-xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 shadow-sm">
+        <div className="flex items-center gap-2.5">
+          <span
+            className="w-1 h-5 rounded-full shrink-0"
+            style={{ backgroundColor: color }}
+          />
+          <h2 className="text-gray-800 dark:text-gray-100 text-[13px] font-semibold tracking-tight leading-none">
+            {title}
+          </h2>
+          <span
+            className="text-[11px] font-semibold rounded-md px-1.5 py-0.5 leading-none tabular-nums"
+            style={{ backgroundColor: `${color}18`, color }}
+          >
+            {todos.length}
+          </span>
+        </div>
+
+        <Tooltip content={`Add to ${title}`}>
+          <motion.button
+            onClick={() => onAddNew(id)}
+            className="w-7 h-7 flex items-center justify-center rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:border-gray-300 dark:hover:border-gray-600 hover:bg-white dark:hover:bg-gray-700 transition-all shadow-sm"
+          >
+            <Plus className="h-3 w-3" />
+          </motion.button>
+        </Tooltip>
+      </div>
+
+      <div
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
+        className={`flex-1 min-h-[79vh] max-h-[79vh] overflow-auto rounded-xl p-2 space-y-2 transition-all duration-200 ${
+          isOver
+            ? "bg-blue-50/80 dark:bg-blue-900/15 border-2 border-dashed border-blue-400 dark:border-blue-500 shadow-inner scale-[1.01]"
+            : "bg-gray-50/70 dark:bg-gray-800/30 border-2 border-transparent"
+        }`}
+      >
+        <AnimatePresence initial={false}>
+          {todos.map((todo) => (
+            <KanbanCard
+              key={todo.id}
+              todo={todo}
+              onEdit={onEdit}
+              onDelete={onDelete}
+              onViewDetail={onViewDetail}
+              isDragging={draggingId === todo.id}
+              isSyncing={syncingIds.has(todo.id)}
+            />
+          ))}
+        </AnimatePresence>
+
+        {todos.length === 0 && !isOver && (
+          <motion.div
+            initial={{ opacity: 0, y: 4 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.08, duration: 0.2 }}
+            className="flex flex-col items-center justify-center py-10 text-center select-none"
+          >
+            <div
+              className="w-9 h-9 rounded-xl flex items-center justify-center mb-3"
+              style={{ backgroundColor: `${color}12` }}
+            >
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke={color}
+                strokeWidth="1.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                style={{ opacity: 0.7 }}
+              >
+                <rect x="3" y="3" width="18" height="18" rx="3" />
+                <line x1="9" y1="9" x2="15" y2="9" />
+                <line x1="9" y1="13" x2="13" y2="13" />
+              </svg>
+            </div>
+            <p className="text-[12px] font-medium text-gray-400 dark:text-gray-500 mb-1">
+              No tasks yet
+            </p>
+            <button
+              onClick={() => onAddNew(id)}
+              className="text-[11px] font-semibold transition-colors"
+              style={{ color }}
+            >
+              + Add task
+            </button>
+          </motion.div>
+        )}
+
+        <AnimatePresence>
+          {isOver && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 48 }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.15 }}
+              className="border-2 border-dashed border-blue-300 dark:border-blue-700 rounded-xl flex items-center justify-center overflow-hidden"
+            >
+              <span className="text-[11px] font-semibold text-blue-500 dark:text-blue-400 tracking-wide uppercase">
+                Release to drop
+              </span>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+    </div>
+  );
+}
