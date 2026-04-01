@@ -13,6 +13,7 @@ import { TodoProvider } from "./context/Todo.context";
 import { Provider } from "react-redux";
 import { store } from "./lib/store";
 
+import OAuth2RedirectPage from "./pages/utils/Oauth.page";
 import AuthPage from "./pages/utils/Auth.page";
 import Dashboard from "./pages/app/Home.page";
 import HeroPage from "./pages/app/Hero.page";
@@ -169,6 +170,7 @@ function AppContent() {
             </>
           }
         />
+        <Route path="/oauth2/redirect" element={<OAuth2RedirectPage/>}/>
       </Routes>
     </Router>
   );
