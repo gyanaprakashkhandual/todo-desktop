@@ -1,1 +1,11 @@
-@import 'tailwindcss'
+@import 'tailwindcss';
+
+.navbar {
+    -webkit-app-region: drag;
+}
+
+/* Make any buttons/inputs inside it still clickable */
+.navbar button,
+.navbar input {
+    -webkit-app-region: no-drag;
+}

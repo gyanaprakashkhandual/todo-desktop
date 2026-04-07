@@ -1,9 +1,11 @@
-import { app, BrowserWindow, ipcMain } from 'electron';
+import { app, BrowserWindow, ipcMain, Menu } from 'electron';
 import path from 'path';
 
 const isDev = process.env.NODE_ENV === 'development';
 
 let mainWindow: BrowserWindow | null = null;
+
+Menu.setApplicationMenu(null);
 
 function createWindow(): void {
   mainWindow = new BrowserWindow({
@@ -11,22 +13,25 @@ function createWindow(): void {
     height: 800,
     minWidth: 900,
     minHeight: 600,
+    title: 'TODO - A simple thing in your life',  // ← added
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: false,
     },
-    titleBarStyle: 'hiddenInset',  // Clean native macOS look
+    titleBarOverlay: {
+      color: '#ffffff',
+      symbolColor: '#000000',
+      height: 40,
+    },
     show: false,
   });
 
   if (isDev) {
-    // In dev: load from Vite dev server
     mainWindow.loadURL('http://localhost:5173');
     mainWindow.webContents.openDevTools();
   } else {
-    // In prod: load built React app
     mainWindow.loadFile(path.join(__dirname, '../renderer/index.html'));
   }
 

@@ -6,13 +6,13 @@
   "scripts": {
     "dev:vite": "vite",
     "dev:electron": "wait-on http://localhost:5173 && cross-env NODE_ENV=development electron .",
-    "dev": "concurrently \"npm run dev:vite\" \"npm run dev:electron\"",
-    "build:renderer": "vite build",
     "build:electron": "tsc -p tsconfig.electron.json",
+    "dev": "concurrently \"npm run dev:vite\" \"npm run build:electron && npm run dev:electron\"",
+    "build:renderer": "vite build",
     "build": "npm run build:renderer && npm run build:electron",
     "package:mac": "npm run build && electron-builder --mac",
     "package:win": "npm run build && electron-builder --win"
-  },
+},
   "build": {
     "appId": "com.yourname.myelectronapp",
     "productName": "My Electron App",
